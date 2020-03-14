@@ -304,7 +304,12 @@ int memory_free(void *valid_ptr) {
     while (1) {
         nextPtr = curPtr + sizeof(memoryBlock_Header) + (int)((*(memoryBlock_Header *)curPtr).size & ~1);
 
-        while (*(char *)nextPtr == 0 && nextPtr < memoryBorder) {
+        while (*(unsigned short int *)nextPtr == 0 && nextPtr < memoryBorder - 1) {
+            nextPtr += 2;
+            rightBorder += 2;
+        }
+
+        if (nextPtr == memoryBorder - 1) {
             nextPtr++;
             rightBorder++;
         }
@@ -514,10 +519,17 @@ void print_memory() {
     printf("==========================\n");
 
     ptr = memoryStart + (numberOfDataLists + 1) * sizeof(short int);
+    printf("number of data lists: %d\n", numberOfDataLists);
     size -= (numberOfDataLists + 1) * sizeof(short int);
     while (size > 0) {
         fragmentedBytes = 0;
-        while (*(char *)ptr == 0 && size > 0) {
+        while (*(unsigned short int *)ptr == 0 && size > 0) {
+            fragmentedBytes += 2;
+            ptr += 2;
+            size -= 2;
+        }
+
+        if (size == 1) {
             fragmentedBytes++;
             ptr++;
             size--;
@@ -705,8 +717,8 @@ void test2() {
     } while (command < '1' || command > '3');
     printf("\n");
 
-    upper = 24;
     lower = 8;
+    upper = 24;
     srand(time(0));
 
     datablockSize1 = (rand() % (upper - lower + 1)) + lower;
@@ -821,14 +833,66 @@ void test2() {
 }
 
 void test3() {
-    char myMemory1[50000];
+    char myMemory[50000];
+    char *buf1, *buf2, *buf3, *buf4, *buf5, *buf6;
+    int datablockSize1, datablockSize2, datablockSize3, datablockSize4, datablockSize5, datablockSize6;
     int upper, lower;
 
+    memoryStart = myMemory;
+
+    srand(time(0));
+    lower = 500;
+    upper = 5000;
+
+    datablockSize1 = (rand() % (upper - lower + 1)) + lower;
+    datablockSize2 = (rand() % (upper - lower + 1)) + lower;
+    datablockSize3 = (rand() % (upper - lower + 1)) + lower;
+    datablockSize4 = (rand() % (upper - lower + 1)) + lower;
+    datablockSize5 = (rand() % (upper - lower + 1)) + lower;
+    datablockSize6 = (rand() % (upper - lower + 1)) + lower;
 
     system("cls");
 
-    printf("TEST 2:\n");
+    printf("TEST 3:\n");
     printf("\n");
+
+    memory_init(memoryStart, 50000);
+    print_memory();
+
+    buf1 = memory_alloc(datablockSize1);
+    buf2 = memory_alloc(datablockSize2);
+    buf3 = memory_alloc(datablockSize3);
+    buf4 = memory_alloc(datablockSize4);
+    buf5 = memory_alloc(datablockSize5);
+    buf6 = memory_alloc(datablockSize6);
+    print_memory();
+
+    if (buf1 != NULL) {
+        memory_free(buf1);
+    }
+    if (buf2 != NULL) {
+        memory_free(buf2);
+    }
+    if (buf3 != NULL) {
+        memory_free(buf3);
+    }
+    if (buf4 != NULL) {
+        memory_free(buf4);
+    }
+    if (buf5 != NULL) {
+        memory_free(buf5);
+    }
+    if (buf6 != NULL) {
+        memory_free(buf6);
+    }
+    print_memory();
+
+    buf1 = memory_alloc(datablockSize1);
+    buf2 = memory_alloc(datablockSize2);
+    buf3 = memory_alloc(datablockSize3);
+    buf4 = memory_alloc(datablockSize4);
+    buf5 = memory_alloc(datablockSize5);
+    buf6 = memory_alloc(datablockSize6);
     print_memory();
 
     printf("PRESS ANY KEY TO CONTINUE.\n");
@@ -837,7 +901,71 @@ void test3() {
 }
 
 void test4() {
+    char myMemory[50000];
+    char *buf1, *buf2, *buf3, *buf4, *buf5, *buf6;
+    int datablockSize1, datablockSize2, datablockSize3, datablockSize4, datablockSize5, datablockSize6;
+    int upper, lower;
 
+    memoryStart = myMemory;
+
+    srand(time(0));
+    lower = 8;
+    upper = 50000;
+
+    datablockSize1 = (rand() % (upper - lower + 1)) + lower;
+    datablockSize2 = (rand() % (upper - lower + 1)) + lower;
+    datablockSize3 = (rand() % (upper - lower + 1)) + lower;
+    datablockSize4 = (rand() % (upper - lower + 1)) + lower;
+    datablockSize5 = (rand() % (upper - lower + 1)) + lower;
+    datablockSize6 = (rand() % (upper - lower + 1)) + lower;
+
+    system("cls");
+
+    printf("TEST 4:\n");
+    printf("\n");
+
+    memory_init(memoryStart, 50000);
+    print_memory();
+
+    buf1 = memory_alloc(datablockSize1);
+    buf2 = memory_alloc(datablockSize2);
+    buf3 = memory_alloc(datablockSize3);
+    buf4 = memory_alloc(datablockSize4);
+    buf5 = memory_alloc(datablockSize5);
+    buf6 = memory_alloc(datablockSize6);
+    print_memory();
+
+    if (buf1 != NULL) {
+        memory_free(buf1);
+    }
+    if (buf2 != NULL) {
+        memory_free(buf2);
+    }
+    if (buf3 != NULL) {
+        memory_free(buf3);
+    }
+    if (buf4 != NULL) {
+        memory_free(buf4);
+    }
+    if (buf5 != NULL) {
+        memory_free(buf5);
+    }
+    if (buf6 != NULL) {
+        memory_free(buf6);
+    }
+    print_memory();
+
+    buf1 = memory_alloc(datablockSize1);
+    buf2 = memory_alloc(datablockSize2);
+    buf3 = memory_alloc(datablockSize3);
+    buf4 = memory_alloc(datablockSize4);
+    buf5 = memory_alloc(datablockSize5);
+    buf6 = memory_alloc(datablockSize6);
+    print_memory();
+
+    printf("PRESS ANY KEY TO CONTINUE.\n");
+    getchar();
+    getchar();
 }
 
 int main() {
