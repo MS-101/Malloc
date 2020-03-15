@@ -69,7 +69,7 @@ int getAmountOfDataLists(int size) {
 void *memory_alloc(unsigned int size) {
     printf("ALLOCATING MEMORY(%d)\n\n", size);
 
-    void *ptr, *headerReader;
+    void *ptr, *nextPtr, *headerReader;
     int i, fragmentedBytes;
     int curList, numberOfDataLists, memoryOffset;
     int memorySize, realMemorySize, recommendedSize, realSize, remainingSize;
@@ -174,8 +174,13 @@ void *memory_alloc(unsigned int size) {
 
                         curList = logBaseOf2(recommendedSize);
                         headerReader = memoryStart + curList * sizeof(short int);
-                        (*(memoryBlock_Header *)ptr).nextFromList = *(short unsigned int *)headerReader;
-                        *(short unsigned int *)headerReader = ptr - memoryStart;
+                        nextPtr = memoryStart + *(short unsigned int *)headerReader;
+
+                        if (ptr != nextPtr) {
+                            (*(memoryBlock_Header *)ptr).nextFromList = *(short unsigned int *)headerReader;
+                            (*(memoryBlock_Header *)nextPtr).prevFromList = ptr - memoryStart;
+                            *(short unsigned int *)headerReader = ptr - memoryStart;
+                        }
 
                         remainingSize -= recommendedSize;
                     }
@@ -287,7 +292,8 @@ int memory_free(void *valid_ptr) {
                     (*(memoryBlock_Header *)curPtr).prevFromList = (*(memoryBlock_Header *)leftBorder).prevFromList;
                 }
             } else {
-                break;
+                nextPtr += (*(memoryBlock_Header *)nextPtr).size & ~1 + sizeof(memoryBlock_Header);
+                leftBorder = nextPtr;
             }
 
             curPtr = nextPtr;
@@ -295,6 +301,7 @@ int memory_free(void *valid_ptr) {
             break;
         }
     }
+    printf("left border: %d\n", leftBorder - memoryStart);
 
     //checking right of ptr
 
@@ -343,6 +350,7 @@ int memory_free(void *valid_ptr) {
 
         curPtr = nextPtr;
     }
+    printf("right border: %d\n", rightBorder - memoryStart);
 
     //now i need to create the largest possible free data blocks in the space designated by left and right border
 
@@ -519,11 +527,10 @@ void print_memory() {
     printf("==========================\n");
 
     ptr = memoryStart + (numberOfDataLists + 1) * sizeof(short int);
-    printf("number of data lists: %d\n", numberOfDataLists);
     size -= (numberOfDataLists + 1) * sizeof(short int);
     while (size > 0) {
         fragmentedBytes = 0;
-        while (*(unsigned short int *)ptr == 0 && size > 0) {
+        while (*(unsigned short int *)ptr == 0 && size > 1) {
             fragmentedBytes += 2;
             ptr += 2;
             size -= 2;
@@ -556,7 +563,7 @@ void print_memory() {
 void test1() {
     int datablockSize;
     char command;
-    char myMemory1[50], myMemory2[100], myMemory3[150];
+    char myMemory1[50], myMemory2[100], myMemory3[200];
     char *buf1, *buf2, *buf3, *buf4, *buf5, *buf6;
 
     do {
@@ -568,7 +575,7 @@ void test1() {
         printf("Input one of the commands for the required memory size:\n");
         printf("1 - 50 B memory\n");
         printf("2 - 100 B memory\n");
-        printf("3 - 150 B memory\n");
+        printf("3 - 200 B memory\n");
         printf("\n");
 
         printf("INPUT COMMAND: ");
@@ -599,9 +606,11 @@ void test1() {
             print_memory();
 
             if (buf1 != NULL) {
+                printf("memory_check(buf1): %d\n\n", memory_check(buf1));
                 memory_free(buf1);
             }
             if (buf2 != NULL) {
+                printf("memory_check(buf2): %d\n\n", memory_check(buf2));
                 memory_free(buf2);
             }
             print_memory();
@@ -617,24 +626,30 @@ void test1() {
             print_memory();
 
             buf1 = memory_alloc(datablockSize);
-            print_memory();
             buf2 = memory_alloc(datablockSize);
-            print_memory();
             buf3 = memory_alloc(datablockSize);
             buf4 = memory_alloc(datablockSize);
             print_memory();
 
             if (buf1 != NULL) {
+                printf("memory_check(buf1): %d\n\n", memory_check(buf1));
                 memory_free(buf1);
+                print_memory();
             }
             if (buf2 != NULL) {
+                printf("memory_check(buf2): %d\n\n", memory_check(buf2));
                 memory_free(buf2);
+                print_memory();
             }
             if (buf3 != NULL) {
+                printf("memory_check(buf3): %d\n\n", memory_check(buf3));
                 memory_free(buf3);
+                print_memory();
             }
             if (buf4 != NULL) {
+                printf("memory_check(buf4): %d\n\n", memory_check(buf4));
                 memory_free(buf4);
+                print_memory();
             }
             print_memory();
 
@@ -647,7 +662,7 @@ void test1() {
         case '3':
             memoryStart = myMemory3;
 
-            memory_init(memoryStart, 150);
+            memory_init(memoryStart, 200);
             print_memory();
 
             buf1 = memory_alloc(datablockSize);
@@ -659,21 +674,27 @@ void test1() {
             print_memory();
 
             if (buf1 != NULL) {
+                printf("memory_check(buf1): %d\n\n", memory_check(buf1));
                 memory_free(buf1);
             }
             if (buf2 != NULL) {
+                printf("memory_check(buf2): %d\n\n", memory_check(buf2));
                 memory_free(buf2);
             }
             if (buf3 != NULL) {
+                printf("memory_check(buf3): %d\n\n", memory_check(buf3));
                 memory_free(buf3);
             }
             if (buf4 != NULL) {
+                printf("memory_check(buf4): %d\n\n", memory_check(buf4));
                 memory_free(buf4);
             }
             if (buf5 != NULL) {
+                printf("memory_check(buf5): %d\n\n", memory_check(buf5));
                 memory_free(buf5);
             }
             if (buf6 != NULL) {
+                printf("memory_check(buf6): %d\n\n", memory_check(buf6));
                 memory_free(buf6);
             }
             print_memory();
@@ -688,14 +709,14 @@ void test1() {
             break;
     }
 
-    printf("PRESS ANY KEY TO CONTINUE.\n");
+    printf("PRESS ENTER TO CONTINUE.\n");
     getchar();
     getchar();
 }
 
 void test2() {
     char command;
-    char myMemory1[50], myMemory2[100], myMemory3[150];
+    char myMemory1[50], myMemory2[100], myMemory3[200];
     char *buf1, *buf2, *buf3, *buf4, *buf5, *buf6;
     int datablockSize1, datablockSize2, datablockSize3, datablockSize4, datablockSize5, datablockSize6;
     int upper, lower;
@@ -709,7 +730,7 @@ void test2() {
         printf("Input one of the commands for the required memory size:\n");
         printf("1 - 50 B memory\n");
         printf("2 - 100 B memory\n");
-        printf("3 - 150 B memory\n");
+        printf("3 - 200 B memory\n");
         printf("\n");
 
         printf("INPUT COMMAND: ");
@@ -740,9 +761,11 @@ void test2() {
             print_memory();
 
             if (buf1 != NULL) {
+                printf("memory_check(buf1): %d\n\n", memory_check(buf1));
                 memory_free(buf1);
             }
             if (buf2 != NULL) {
+                printf("memory_check(buf2): %d\n\n", memory_check(buf2));
                 memory_free(buf2);
             }
             print_memory();
@@ -764,15 +787,19 @@ void test2() {
             print_memory();
 
             if (buf1 != NULL) {
+                printf("memory_check(buf1): %d\n\n", memory_check(buf1));
                 memory_free(buf1);
             }
             if (buf2 != NULL) {
+                printf("memory_check(buf2): %d\n\n", memory_check(buf2));
                 memory_free(buf2);
             }
             if (buf3 != NULL) {
+                printf("memory_check(buf3): %d\n\n", memory_check(buf3));
                 memory_free(buf3);
             }
             if (buf4 != NULL) {
+                printf("memory_check(buf4): %d\n\n", memory_check(buf4));
                 memory_free(buf4);
             }
             print_memory();
@@ -786,7 +813,7 @@ void test2() {
         case '3':
             memoryStart = myMemory3;
 
-            memory_init(memoryStart, 150);
+            memory_init(memoryStart, 200);
             print_memory();
 
             buf1 = memory_alloc(datablockSize1);
@@ -798,21 +825,27 @@ void test2() {
             print_memory();
 
             if (buf1 != NULL) {
+                printf("memory_check(buf1): %d\n\n", memory_check(buf1));
                 memory_free(buf1);
             }
             if (buf2 != NULL) {
+                printf("memory_check(buf2): %d\n\n", memory_check(buf2));
                 memory_free(buf2);
             }
             if (buf3 != NULL) {
+                printf("memory_check(buf3): %d\n\n", memory_check(buf3));
                 memory_free(buf3);
             }
             if (buf4 != NULL) {
+                printf("memory_check(buf4): %d\n\n", memory_check(buf4));
                 memory_free(buf4);
             }
             if (buf5 != NULL) {
+                printf("memory_check(buf5): %d\n\n", memory_check(buf5));
                 memory_free(buf5);
             }
             if (buf6 != NULL) {
+                printf("memory_check(buf6): %d\n\n", memory_check(buf6));
                 memory_free(buf6);
             }
             print_memory();
@@ -827,7 +860,7 @@ void test2() {
             break;
     }
 
-    printf("PRESS ANY KEY TO CONTINUE.\n");
+    printf("PRESS ENTER TO CONTINUE.\n");
     getchar();
     getchar();
 }
@@ -868,21 +901,27 @@ void test3() {
     print_memory();
 
     if (buf1 != NULL) {
+        printf("memory_check(buf1): %d\n\n", memory_check(buf1));
         memory_free(buf1);
     }
     if (buf2 != NULL) {
+        printf("memory_check(buf2): %d\n\n", memory_check(buf2));
         memory_free(buf2);
     }
     if (buf3 != NULL) {
+        printf("memory_check(buf3): %d\n\n", memory_check(buf3));
         memory_free(buf3);
     }
     if (buf4 != NULL) {
+        printf("memory_check(buf4): %d\n\n", memory_check(buf4));
         memory_free(buf4);
     }
     if (buf5 != NULL) {
+        printf("memory_check(buf5): %d\n\n", memory_check(buf5));
         memory_free(buf5);
     }
     if (buf6 != NULL) {
+        printf("memory_check(buf6): %d\n\n", memory_check(buf6));
         memory_free(buf6);
     }
     print_memory();
@@ -895,7 +934,7 @@ void test3() {
     buf6 = memory_alloc(datablockSize6);
     print_memory();
 
-    printf("PRESS ANY KEY TO CONTINUE.\n");
+    printf("PRESS ENTER TO CONTINUE.\n");
     getchar();
     getchar();
 }
@@ -936,21 +975,27 @@ void test4() {
     print_memory();
 
     if (buf1 != NULL) {
+        printf("memory_check(buf1): %d\n\n", memory_check(buf1));
         memory_free(buf1);
     }
     if (buf2 != NULL) {
+        printf("memory_check(buf2): %d\n\n", memory_check(buf2));
         memory_free(buf2);
     }
     if (buf3 != NULL) {
+        printf("memory_check(buf3): %d\n\n", memory_check(buf3));
         memory_free(buf3);
     }
     if (buf4 != NULL) {
+        printf("memory_check(buf4): %d\n\n", memory_check(buf4));
         memory_free(buf4);
     }
     if (buf5 != NULL) {
+        printf("memory_check(buf5): %d\n\n", memory_check(buf5));
         memory_free(buf5);
     }
     if (buf6 != NULL) {
+        printf("memory_check(buf6): %d\n\n", memory_check(buf6));
         memory_free(buf6);
     }
     print_memory();
@@ -963,7 +1008,7 @@ void test4() {
     buf6 = memory_alloc(datablockSize6);
     print_memory();
 
-    printf("PRESS ANY KEY TO CONTINUE.\n");
+    printf("PRESS ENTER TO CONTINUE.\n");
     getchar();
     getchar();
 }
